@@ -57,17 +57,18 @@ changeValue : String -> Model -> (Model, Cmd Msg)
 changeValue text model =
   let
     diff = Diff.diffChars model.text text
+    newLogoot = diff |> changesToOperations |> applyOperations model.logoot
   in
   ({model
-  | text = text
+  | text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
   , diff = toString diff
-  , logoot = diff |> changesToOperations |> applyOperations model.logoot
+  , logoot = newLogoot
   }, Cmd.none)
 
 type Operation
   = Insert Char
   | Remove Char
-  | Noop Char
+  | Noop Int
 
 changesToOperations : List Diff.Change -> List Operation
 changesToOperations = concatMap changeToOperations
@@ -79,9 +80,9 @@ changeToOperations change =
       [ Diff.Removed rem |> changeToOperations
       , Diff.Added add |> changeToOperations
       ]
-    Diff.NoChange str -> String.foldr (\c -> Noop c |> (::)) [] str
-    Diff.Removed str -> String.foldr (\c -> Remove c |> (::)) [] str
-    Diff.Added str -> String.foldr (\c -> Insert c |> (::)) [] str
+    Diff.NoChange str -> [Noop (String.length str)]
+    Diff.Removed str -> String.foldl (\c l -> l ++ [Remove c]) [] str
+    Diff.Added str -> String.foldl (\c l -> l ++ [Insert c]) [] str
 
 applyOperations : L.Logoot -> List Operation -> L.Logoot
 applyOperations logoot = snd << foldl applyOperation (0, logoot)
@@ -93,10 +94,10 @@ applyOperation op (cursor, logoot) =
   in
   case op of
     Insert char ->
-      (cursor + 1, L.insertAfter 0 0 (toString char) (pidAtIndex cursor logoot |> pidDefault) logoot)
+      (cursor + 1, L.insertAfter 0 0 (String.fromChar char) (pidAtIndex cursor logoot |> pidDefault) logoot)
     Remove char ->
-      (cursor, L.remove (pidAtIndex (cursor + 1) logoot |> pidDefault) (toString char) logoot)
-    Noop char -> (cursor + 1, logoot)
+      (cursor, L.remove (pidAtIndex (cursor + 1) logoot |> pidDefault) (String.fromChar char) logoot)
+    Noop step -> (cursor + step, logoot)
 
 pidAtIndex : Int -> L.Logoot -> Maybe L.Pid
 pidAtIndex index logoot =
@@ -113,8 +114,8 @@ pidAtIndex index logoot =
 view : Model -> Html Msg
 view model =
   div []
-    [ textarea [value model.text, onInput ChangeValue] []
+    [ textarea [style [ ("width", "90%"), ("height", "100px") ], value model.text , onInput ChangeValue] []
     , pre [] [text model.diff]
-    , pre [] [model.logoot |> L.toList |> toString |> text]
+    , pre [style [ ("whiteSpace", "preWrap") ]] [model.logoot |> L.toList |> toString |> text]
     ]
 
