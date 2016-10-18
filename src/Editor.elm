@@ -14,6 +14,7 @@ import String
 import Maybe
 import Logoot as L
 import List exposing (..)
+import Random
 
 
 {-| -}
@@ -32,7 +33,7 @@ main =
 
 
 init =
-    ( initModel, Cmd.none )
+    ( initModel, Random.generate SetSite (Random.int 1 32000) )
 
 
 
@@ -43,6 +44,8 @@ type alias Model =
     { diff : String
     , text : String
     , logoot : L.Logoot String
+    , site : L.Site
+    , clock : L.Clock
     }
 
 
@@ -50,6 +53,8 @@ initModel =
     { diff = ""
     , text = ""
     , logoot = L.empty ""
+    , site = 0
+    , clock = 0
     }
 
 
@@ -58,12 +63,16 @@ initModel =
 
 
 type Msg
-    = ChangeValue String
+    = SetSite Int
+    | ChangeValue String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
+        SetSite site ->
+            ( { model | site = site }, Cmd.none )
+
         ChangeValue text ->
             changeValue text model
 
@@ -74,13 +83,14 @@ changeValue text model =
         diff =
             Diff.diffChars model.text text
 
-        newLogoot =
-            diff |> changesToOperations |> applyOperations model.logoot
+        ( newLogoot, clock ) =
+            diff |> changesToOperations |> applyOperations model.site model.clock model.logoot
     in
         ( { model
             | text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
             , diff = toString diff
             , logoot = newLogoot
+            , clock = clock
           }
         , Cmd.none
         )
@@ -116,26 +126,33 @@ changeToOperations change =
             String.foldl (\c l -> l ++ [ Insert c ]) [] str
 
 
-applyOperations : L.Logoot String -> List Operation -> L.Logoot String
-applyOperations logoot =
-    snd << foldl applyOperation ( 0, logoot )
+applyOperations : L.Site -> L.Clock -> L.Logoot String -> List Operation -> ( L.Logoot String, L.Clock )
+applyOperations site clock logoot ops =
+    let
+        ( _, newLogoot, newClock ) =
+            foldl (applyOperation site) ( 0, logoot, clock ) ops
+    in
+        ( newLogoot, newClock )
 
 
-applyOperation : Operation -> ( Int, L.Logoot String ) -> ( Int, L.Logoot String )
-applyOperation op ( cursor, logoot ) =
+applyOperation : L.Site -> Operation -> ( Int, L.Logoot String, L.Clock ) -> ( Int, L.Logoot String, L.Clock )
+applyOperation site op ( cursor, logoot, clock ) =
     let
         pidDefault =
             Maybe.withDefault ( [ ( 0, 0 ) ], 0 )
+
+        ( newCursor, newLogoot, newClock ) =
+            case op of
+                Insert char ->
+                    ( cursor + 1, Maybe.withDefault logoot <| L.insertAt site clock cursor (String.fromChar char) logoot, clock + 1 )
+
+                Remove char ->
+                    ( cursor, L.remove (pidAtIndex (cursor + 1) logoot |> pidDefault) (String.fromChar char) logoot, clock )
+
+                Noop step ->
+                    ( cursor + step, logoot, clock )
     in
-        case op of
-            Insert char ->
-                ( cursor + 1, Maybe.withDefault logoot <| L.insertAt 0 0 cursor (String.fromChar char) logoot )
-
-            Remove char ->
-                ( cursor, L.remove (pidAtIndex (cursor + 1) logoot |> pidDefault) (String.fromChar char) logoot )
-
-            Noop step ->
-                ( cursor + step, logoot )
+        ( newCursor, newLogoot, newClock )
 
 
 pidAtIndex : Int -> L.Logoot String -> Maybe L.Pid
