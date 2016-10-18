@@ -42,14 +42,14 @@ init =
 type alias Model =
     { diff : String
     , text : String
-    , logoot : L.Logoot
+    , logoot : L.Logoot String
     }
 
 
 initModel =
     { diff = ""
     , text = ""
-    , logoot = L.empty
+    , logoot = L.empty ""
     }
 
 
@@ -116,12 +116,12 @@ changeToOperations change =
             String.foldl (\c l -> l ++ [ Insert c ]) [] str
 
 
-applyOperations : L.Logoot -> List Operation -> L.Logoot
+applyOperations : L.Logoot String -> List Operation -> L.Logoot String
 applyOperations logoot =
     snd << foldl applyOperation ( 0, logoot )
 
 
-applyOperation : Operation -> ( Int, L.Logoot ) -> ( Int, L.Logoot )
+applyOperation : Operation -> ( Int, L.Logoot String ) -> ( Int, L.Logoot String )
 applyOperation op ( cursor, logoot ) =
     let
         pidDefault =
@@ -129,7 +129,7 @@ applyOperation op ( cursor, logoot ) =
     in
         case op of
             Insert char ->
-                ( cursor + 1, L.insertAfter 0 0 (String.fromChar char) (pidAtIndex cursor logoot |> pidDefault) logoot )
+                ( cursor + 1, Maybe.withDefault logoot <| L.insertAt 0 0 cursor (String.fromChar char) logoot )
 
             Remove char ->
                 ( cursor, L.remove (pidAtIndex (cursor + 1) logoot |> pidDefault) (String.fromChar char) logoot )
@@ -138,7 +138,7 @@ applyOperation op ( cursor, logoot ) =
                 ( cursor + step, logoot )
 
 
-pidAtIndex : Int -> L.Logoot -> Maybe L.Pid
+pidAtIndex : Int -> L.Logoot String -> Maybe L.Pid
 pidAtIndex index logoot =
     logoot
         |> L.toList
