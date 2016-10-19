@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<body>
+  <div id="editor"></div>
+  <script src="dist/editor.js"></script>
+  <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+  <script>
+var node = document.getElementById('editor')
+var app = Elm.Editor.embed(node)
+var ports = app.ports
+var peer
+
+var conns = {}
+
+function initPeer(options) {
+  if (!peer) {
+    peer = new Peer(options.id, {key: options.key})
+
+    peer.on('connection', function(conn) {
+      conn.on('data', function(data) {
+        console.log('received', data)
+        ports.subscribe.send(data)
+      })
+    })
+  }
+}
+
+function initConn(id, cb) {
+  if (!conns[id]) {
+    conns[id] = peer.connect(id)
+    conns[id].on('open', cb(conns[id]))
+  } else {
+    cb(conns[id])()
+  }
+}
+
+function makeSend(options) {
+  return function(conn) {
+    return function () {
+      console.log('sending', options.payload)
+      conn.send(options.payload)
+    }
+  }
+}
+
+ports.init.subscribe(initPeer)
+
+ports.send.subscribe(function(options) {
+  console.log('sent from Elm', options)
+  initPeer({id: options.id, key: options.key})
+  initConn(options.peerId, makeSend(options))
+})
+
+  </script>
+</body>
