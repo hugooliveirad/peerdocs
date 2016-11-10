@@ -21,6 +21,7 @@ function initPeer(options) {
     peer = new Peer(options.id, {key: options.key})
 
     peer.on('connection', function(conn) {
+      console.log('connection', conn)
       conn.on('data', function(data) {
         console.log('received', data)
         ports.subscribe.send(data)
