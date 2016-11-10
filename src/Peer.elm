@@ -25,6 +25,10 @@ type alias PeerOperation =
     }
 
 
+type alias PeerID =
+    { id : String }
+
+
 port init : InitOptions -> Cmd msg
 
 

@@ -84,7 +84,9 @@ initModel =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Peer.subscribe PeerMessage
+    Sub.batch
+        [ Peer.subscribe PeerMessage
+        ]
 
 
 
@@ -130,6 +132,7 @@ peerMessage { id, operation, pid, content } model =
         ( { model
             | logoot = newLogoot
             , text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
+            , peer = id
           }
         , Cmd.none
         )
