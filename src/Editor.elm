@@ -17,6 +17,7 @@ import List exposing (..)
 import Random
 import Peer
 import Platform.Cmd exposing ((!))
+import Css exposing (..)
 
 
 apiKey =
@@ -282,10 +283,14 @@ pidAtIndex index logoot =
 -- View
 
 
+styles =
+    Css.asPairs >> Html.attributes.style
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ textarea [ style [ ( "width", "90%" ), ( "height", "100px" ) ], value model.text, onInput ChangeValue ] []
+        [ textarea [ styles [ width (pct 90) ], value model.text, onInput ChangeValue ] []
         , div []
             [ label []
                 [ text "Peer "
