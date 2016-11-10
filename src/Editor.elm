@@ -17,7 +17,6 @@ import List exposing (..)
 import Random
 import Peer
 import Platform.Cmd exposing ((!))
-import Elmoji exposing (text')
 
 
 apiKey =
@@ -296,8 +295,8 @@ editorStyles =
     style
         [ ( "width", "100%" )
         , ( "maxWidth", "650px" )
-        , ( "height", "75vh" )
-        , ( "padding", "20px" )
+        , ( "height", "65vh" )
+        , ( "padding", "40px 20px 20px" )
         , ( "fontFamily", "inherit" )
         , ( "fontSize", "inherit" )
         , ( "display", "block" )
@@ -307,15 +306,53 @@ editorStyles =
         ]
 
 
-linkWrapperStyles =
+welcomeStyles =
     style
-        [ ( "marginTop", "20px" )
+        [ ( "padding", "20px" )
+        , ( "background", "rgb(59, 160, 243)" )
+        , ( "color", "white" )
+        , ( "textAlign", "center" )
+        , ( "minHeight", "35vh" )
         ]
 
 
 linkStyles =
     style
-        []
+        [ ( "color", "inherit" )
+        , ( "display", "block" )
+        , ( "border", "1px dashed" )
+        , ( "padding", "10px" )
+        , ( "fontSize", "1.5rem" )
+        , ( "overflow", "hidden" )
+        , ( "textOverflow", "ellipsis" )
+        ]
+
+
+listStyles =
+    style
+        [ ( "margin", "0" )
+        , ( "padding", "0" )
+        ]
+
+
+itemStyles =
+    style
+        [ ( "display", "block" )
+        , ( "padding", "10px" )
+        ]
+
+
+itsOpenStyles =
+    style
+        [ ( "color", "inherit" ) ]
+
+
+fire =
+    img [ src "/assets/fire.svg", class "emoji fire" ] []
+
+
+pencil =
+    img [ src "/assets/pencil.svg", class "emoji pencil" ] []
 
 
 view : Model -> Html Msg
@@ -324,22 +361,58 @@ view model =
         [ textarea
             [ editorStyles
             , value model.text
-            , placeholder "Share something"
+            , placeholder "Write something!"
             , onInput ChangeValue
             , autofocus True
             ]
             []
-        , section []
+        , section [ welcomeStyles ]
             [ h1 [] [ text "Welcome to Peerdocs!" ]
-            , ol []
-                [ li [] [ text' "📝 Write your document" ]
-                , li []
-                    [ span []
-                        [ text' "🙌 Share this link with your peers " ]
-                    , a [ linkStyles, href (model.location ++ "#" ++ model.id) ]
-                        [ text (model.location ++ "#" ++ model.id) ]
-                    ]
-                , li [] [ text' "🚀 Build something together!" ]
-                ]
+            , ol [ listStyles ]
+                (if model.peer == "" then
+                    connectItems model
+                 else
+                    connectedItems model
+                )
+            ]
+        ]
+
+
+connectedItems : Model -> List (Html Msg)
+connectedItems model =
+    [ li [ itemStyles ]
+        [ span []
+            [ text <| "Writing with " ++ model.peer
+            ]
+        ]
+    , itsOpenItem
+    ]
+
+
+connectItems : Model -> List (Html Msg)
+connectItems model =
+    [ li [ itemStyles ]
+        [ span []
+            [ fire
+            , text " Share this with your peers "
+            , fire
+            ]
+        ]
+    , li [ itemStyles ]
+        [ a [ linkStyles, href (model.location ++ "#" ++ model.id) ]
+            [ text (model.location ++ "#" ++ model.id) ]
+        ]
+    , li [ itemStyles ]
+        [ span [] [ text "Write something together!" ]
+        ]
+    , itsOpenItem
+    ]
+
+
+itsOpenItem : Html Msg
+itsOpenItem =
+    li [ itemStyles ]
+        [ span []
+            [ a [ itsOpenStyles, href "https://github.com/hugobessaa/peerdocs" ] [ text "GitHub" ]
             ]
         ]
