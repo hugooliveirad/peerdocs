@@ -17,6 +17,7 @@ import List exposing (..)
 import Random
 import Peer
 import Platform.Cmd exposing ((!))
+import Elmoji exposing (text')
 
 
 apiKey =
@@ -291,13 +292,54 @@ pidAtIndex index logoot =
 -- View
 
 
+editorStyles =
+    style
+        [ ( "width", "100%" )
+        , ( "maxWidth", "650px" )
+        , ( "height", "75vh" )
+        , ( "padding", "20px" )
+        , ( "fontFamily", "inherit" )
+        , ( "fontSize", "inherit" )
+        , ( "display", "block" )
+        , ( "margin", "0 auto" )
+        , ( "border", "0" )
+        , ( "outline", "none" )
+        ]
+
+
+linkWrapperStyles =
+    style
+        [ ( "marginTop", "20px" )
+        ]
+
+
+linkStyles =
+    style
+        []
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ textarea [ value model.text, onInput ChangeValue ] []
-        , div []
-            [ text ("Share with your peers: ")
-            , a [ href (model.location ++ "#" ++ model.id) ]
-                [ text (model.location ++ "#" ++ model.id) ]
+        [ textarea
+            [ editorStyles
+            , value model.text
+            , placeholder "Share something"
+            , onInput ChangeValue
+            , autofocus True
+            ]
+            []
+        , section []
+            [ h1 [] [ text "Welcome to Peerdocs!" ]
+            , ol []
+                [ li [] [ text' "📝 Write your document" ]
+                , li []
+                    [ span []
+                        [ text' "🙌 Share this link with your peers " ]
+                    , a [ linkStyles, href (model.location ++ "#" ++ model.id) ]
+                        [ text (model.location ++ "#" ++ model.id) ]
+                    ]
+                , li [] [ text' "🚀 Build something together!" ]
+                ]
             ]
         ]
