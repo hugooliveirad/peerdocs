@@ -17,17 +17,22 @@ import List exposing (..)
 import Random
 import Peer
 import Platform.Cmd exposing ((!))
-import Css exposing (..)
 
 
 apiKey =
     "qdr1ywu2uofos9k9"
 
 
+type alias Flags =
+    { peer : String
+    , location : String
+    }
+
+
 {-| -}
-main : Program Never
+main : Program Flags
 main =
-    App.program
+    App.programWithFlags
         { init = init
         , view = view
         , update = update
@@ -39,8 +44,10 @@ main =
 -- Init
 
 
-init =
-    ( initModel, Random.generate SetSite (Random.int 1 32000) )
+init { peer, location } =
+    ( { initModel | peer = peer, location = location }
+    , Random.generate SetSite (Random.int 1 32000)
+    )
 
 
 
@@ -55,6 +62,7 @@ type alias Model =
     , clock : L.Clock
     , id : String
     , peer : String
+    , location : String
     }
 
 
@@ -66,6 +74,7 @@ initModel =
     , clock = 0
     , id = ""
     , peer = ""
+    , location = ""
     }
 
 
@@ -85,7 +94,6 @@ subscriptions model =
 type Msg
     = SetSite Int
     | ChangeValue String
-    | ChangePeer String
     | PeerMessage Peer.PeerOperation
 
 
@@ -97,9 +105,6 @@ update action model =
 
         ChangeValue text ->
             changeValue text model
-
-        ChangePeer peer ->
-            ( { model | peer = peer }, Cmd.none )
 
         PeerMessage msg ->
             peerMessage msg model
@@ -283,21 +288,13 @@ pidAtIndex index logoot =
 -- View
 
 
-styles =
-    Css.asPairs >> Html.attributes.style
-
-
 view : Model -> Html Msg
 view model =
     div []
-        [ textarea [ styles [ width (pct 90) ], value model.text, onInput ChangeValue ] []
+        [ textarea [ value model.text, onInput ChangeValue ] []
         , div []
-            [ label []
-                [ text "Peer "
-                , input [ value model.peer, onInput ChangePeer ] []
-                ]
+            [ text ("Share with your peers: ")
+            , a [ href (model.location ++ "#" ++ model.id) ]
+                [ text (model.location ++ "#" ++ model.id) ]
             ]
-        , div [] [ text ("Your id is:" ++ model.id) ]
-        , pre [] [ text model.diff ]
-        , pre [ style [ ( "whiteSpace", "preWrap" ) ] ] [ model.logoot |> L.toList |> toString |> text ]
         ]

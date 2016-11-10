@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<body>
-  <div id="editor"></div>
+<head>
   <script src="dist/editor.js"></script>
   <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
+</head>
+<body>
   <script>
-var node = document.getElementById('editor')
-var app = Elm.Editor.embed(node)
+var app = Elm.Editor.fullscreen({
+  location: window.location.origin + window.location.pathname,
+  peer: window.location.hash.length > 0 
+    ? window.location.hash.slice(1) 
+    : ''
+})
 var ports = app.ports
 var peer
 
