@@ -24,12 +24,29 @@ function initPeer(options) {
   }
 }
 
+var cbBuffer = []
 function initConn(id, cb) {
-  if (!conns[id]) {
-    conns[id] = peer.connect(id)
-    conns[id].on('open', cb(conns[id]))
-  } else {
+  var newConn
+
+  if (conns[id] === 'connecting') { // connection being made
+    cbBuffer.push([id, cb])
+  } else if (conns[id] && conns[id].type === 'data') { // connection available
     cb(conns[id])()
+  } else { // no connection available yet
+    cbBuffer.push([id, cb])
+    newConn = peer.connect(id)
+    conns[id] = 'connecting'
+    newConn.on('open', function() {
+      conns[id] = newConn
+      cbBuffer.filter(function([id, cb]) {
+        if (conns[id] && conns[id].type === 'data') {
+          cb(conns[id])()
+          return false
+        } else {
+          return true
+        }
+      })
+    })
   }
 }
 
