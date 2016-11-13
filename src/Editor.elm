@@ -55,8 +55,7 @@ init { peer, location } =
 
 
 type alias Model =
-    { diff : String
-    , text : String
+    { text : String
     , logoot : L.Logoot String
     , site : L.Site
     , clock : L.Clock
@@ -67,8 +66,7 @@ type alias Model =
 
 
 initModel =
-    { diff = ""
-    , text = ""
+    { text = ""
     , logoot = L.empty ""
     , site = 0
     , clock = 0
@@ -160,7 +158,6 @@ changeValue text model =
     in
         { model
             | text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
-            , diff = toString diff
             , logoot = newLogoot
             , clock = clock
         }
