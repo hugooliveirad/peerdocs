@@ -6,7 +6,6 @@ module Editor exposing (main)
 -}
 
 import Html exposing (..)
-import Html.App as App
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Diff
@@ -30,9 +29,9 @@ type alias Flags =
 
 
 {-| -}
-main : Program Flags
+main : Program Flags Model Msg
 main =
-    App.programWithFlags
+    Html.programWithFlags
         { init = init
         , view = view
         , update = update
@@ -129,7 +128,7 @@ peerMessage { id, operation, pid, content } model =
     in
         ( { model
             | logoot = newLogoot
-            , text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
+            , text = newLogoot |> L.toList |> List.map Tuple.second |> foldl (\c str -> str ++ c) ""
             , peer = id
           }
         , Cmd.none
@@ -151,13 +150,13 @@ changeValue : String -> Model -> ( Model, Cmd Msg )
 changeValue text model =
     let
         diff =
-            Diff.diffChars model.text text
+            Diff.diff (String.toList model.text) (String.toList text)
 
         ( newLogoot, peerOperations, clock ) =
             diff |> changesToOperations |> applyOperations model.site model.clock model.logoot
     in
         { model
-            | text = newLogoot |> L.toList |> map snd |> foldl (\c str -> str ++ c) ""
+            | text = newLogoot |> L.toList |> List.map Tuple.second |> foldl (\c str -> str ++ c) ""
             , logoot = newLogoot
             , clock = clock
         }
@@ -190,28 +189,22 @@ type alias PeerOperation =
     ( String, L.Pid, String )
 
 
-changesToOperations : List Diff.Change -> List Operation
+changesToOperations : List (Diff.Change Char) -> List Operation
 changesToOperations =
     concatMap changeToOperations
 
 
-changeToOperations : Diff.Change -> List Operation
+changeToOperations : Diff.Change Char -> List Operation
 changeToOperations change =
     case change of
-        Diff.Changed rem add ->
-            concat
-                [ Diff.Removed rem |> changeToOperations
-                , Diff.Added add |> changeToOperations
-                ]
+        Diff.NoChange _ ->
+            [ Noop 1 ]
 
-        Diff.NoChange str ->
-            [ Noop (String.length str) ]
+        Diff.Removed c ->
+            [ Remove c ]
 
-        Diff.Removed str ->
-            String.foldl (\c l -> l ++ [ Remove c ]) [] str
-
-        Diff.Added str ->
-            String.foldl (\c l -> l ++ [ Insert c ]) [] str
+        Diff.Added c ->
+            [ Insert c ]
 
 
 applyOperations : L.Site -> L.Clock -> L.Logoot String -> List Operation -> ( L.Logoot String, List PeerOperation, L.Clock )
@@ -278,9 +271,9 @@ pidAtIndex index logoot =
     logoot
         |> L.toList
         |> indexedMap (,)
-        |> filter (fst >> (==) index)
-        |> map snd
-        |> map fst
+        |> filter (Tuple.first >> (==) index)
+        |> List.map Tuple.second
+        |> List.map Tuple.first
         |> head
 
 
