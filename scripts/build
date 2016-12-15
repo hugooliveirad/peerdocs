@@ -1,1 +1,1 @@
-elm make src/Editor.elm --output=dist/editor.js
+elm make src/Editor.elm --output=dist/editor.js $@

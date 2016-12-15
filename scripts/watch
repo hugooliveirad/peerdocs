@@ -1,1 +1,1 @@
-ls -d src/* | entr sh -c "scripts/build"
+ls -d src/* | entr sh -c "scripts/build $@"
