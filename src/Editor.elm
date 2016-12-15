@@ -156,33 +156,32 @@ changeValue text model =
             diff |> changesToOperations |> applyOperations model.site model.clock model.logoot
     in
         { model
-            | text = newLogoot |> L.toList |> List.map Tuple.second |> foldl (\c str -> str ++ c) ""
+            | text = newLogoot |> L.toList |> List.map Tuple.second |> List.drop 1 |> butlast |> String.join "\n"
             , logoot = newLogoot
             , clock = clock
         }
-            ! Debug.log "wat"
-                (peerOperations
-                    |> List.map
-                        (\( operation, pid, content ) ->
-                            Peer.send
+            ! (peerOperations
+                |> List.map
+                    (\( operation, pid, content ) ->
+                        Peer.send
+                            { id = model.id
+                            , key = apiKey
+                            , peerId = model.peer
+                            , payload =
                                 { id = model.id
-                                , key = apiKey
-                                , peerId = model.peer
-                                , payload =
-                                    { id = model.id
-                                    , operation = operation
-                                    , pid = pid
-                                    , content = content
-                                    }
+                                , operation = operation
+                                , pid = pid
+                                , content = content
                                 }
-                        )
-                )
+                            }
+                    )
+              )
 
 
 type Operation
     = Insert String
     | Remove String
-    | Noop Int
+    | Noop
 
 
 type alias PeerOperation =
@@ -198,7 +197,7 @@ changeToOperations : Diff.Change String -> Operation
 changeToOperations change =
     case change of
         Diff.NoChange str ->
-            Noop (String.length str)
+            Noop
 
         Diff.Removed str ->
             Remove str
@@ -227,8 +226,9 @@ applyOperation site op ( cursor, logoot, peerOperations, clock ) =
                 Insert str ->
                     let
                         new =
-                            Maybe.withDefault logoot <|
+                            (Maybe.withDefault logoot <|
                                 L.insertAt site clock cursor str logoot
+                            )
                     in
                         ( cursor + 1
                         , new
@@ -250,8 +250,8 @@ applyOperation site op ( cursor, logoot, peerOperations, clock ) =
                         , clock
                         )
 
-                Noop step ->
-                    ( cursor + step
+                Noop ->
+                    ( cursor + 1
                     , logoot
                     , peerOperations
                     , clock
@@ -400,3 +400,8 @@ itsOpenItem =
             [ a [ itsOpenStyles, href "https://github.com/hugobessaa/peerdocs" ] [ text "GitHub" ]
             ]
         ]
+
+
+butlast : List a -> List a
+butlast list =
+    List.take ((List.length list) - 1) list
