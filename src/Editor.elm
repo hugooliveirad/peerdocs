@@ -109,6 +109,17 @@ update action model =
             peerMessage msg model
 
 
+setSite : Int -> Model -> ( Model, Cmd Msg )
+setSite site model =
+    let
+        id =
+            toString site
+    in
+        ( { model | site = site, id = toString site }
+        , Peer.init { id = id, key = apiKey }
+        )
+
+
 peerMessage : Peer.PeerOperation -> Model -> ( Model, Cmd Msg )
 peerMessage { id, operation, pid, content } model =
     let
@@ -128,21 +139,10 @@ peerMessage { id, operation, pid, content } model =
     in
         ( { model
             | logoot = newLogoot
-            , text = newLogoot |> L.toList |> List.map Tuple.second |> foldl (\c str -> str ++ c) ""
+            , text = newLogoot |> L.toList |> List.map Tuple.second |> String.join "\n"
             , peer = id
           }
         , Cmd.none
-        )
-
-
-setSite : Int -> Model -> ( Model, Cmd Msg )
-setSite site model =
-    let
-        id =
-            toString site
-    in
-        ( { model | site = site, id = toString site }
-        , Peer.init { id = id, key = apiKey }
         )
 
 
@@ -150,7 +150,7 @@ changeValue : String -> Model -> ( Model, Cmd Msg )
 changeValue text model =
     let
         diff =
-            Diff.diff (String.toList model.text) (String.toList text)
+            Diff.diffLines model.text text
 
         ( newLogoot, peerOperations, clock ) =
             diff |> changesToOperations |> applyOperations model.site model.clock model.logoot
@@ -180,8 +180,8 @@ changeValue text model =
 
 
 type Operation
-    = Insert Char
-    | Remove Char
+    = Insert String
+    | Remove String
     | Noop Int
 
 
@@ -189,22 +189,22 @@ type alias PeerOperation =
     ( String, L.Pid, String )
 
 
-changesToOperations : List (Diff.Change Char) -> List Operation
+changesToOperations : List (Diff.Change String) -> List Operation
 changesToOperations =
-    concatMap changeToOperations
+    List.map changeToOperations
 
 
-changeToOperations : Diff.Change Char -> List Operation
+changeToOperations : Diff.Change String -> Operation
 changeToOperations change =
     case change of
-        Diff.NoChange _ ->
-            [ Noop 1 ]
+        Diff.NoChange str ->
+            Noop (String.length str)
 
-        Diff.Removed c ->
-            [ Remove c ]
+        Diff.Removed str ->
+            Remove str
 
-        Diff.Added c ->
-            [ Insert c ]
+        Diff.Added str ->
+            Insert str
 
 
 applyOperations : L.Site -> L.Clock -> L.Logoot String -> List Operation -> ( L.Logoot String, List PeerOperation, L.Clock )
@@ -224,35 +224,29 @@ applyOperation site op ( cursor, logoot, peerOperations, clock ) =
 
         ( newCursor, newLogoot, newOperations, newClock ) =
             case op of
-                Insert char ->
+                Insert str ->
                     let
-                        content =
-                            (String.fromChar char)
-
                         new =
                             Maybe.withDefault logoot <|
-                                L.insertAt site clock cursor content logoot
+                                L.insertAt site clock cursor str logoot
                     in
                         ( cursor + 1
                         , new
-                        , ( "insert", (pidAtIndex (cursor + 1) new) |> pidDefault, content ) :: peerOperations
+                        , ( "insert", (pidAtIndex (cursor + 1) new) |> pidDefault, str ) :: peerOperations
                         , clock + 1
                         )
 
-                Remove char ->
+                Remove str ->
                     let
                         pid =
                             (pidAtIndex (cursor + 1) logoot |> pidDefault)
 
-                        content =
-                            (String.fromChar char)
-
                         new =
-                            L.remove pid (String.fromChar char) logoot
+                            L.remove pid str logoot
                     in
                         ( cursor
                         , new
-                        , ( "remove", pid, content ) :: peerOperations
+                        , ( "remove", pid, str ) :: peerOperations
                         , clock
                         )
 
