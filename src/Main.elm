@@ -1,6 +1,6 @@
-module Editor exposing (main)
+module Main exposing (main)
 
-{-| Editor
+{-| Main
 
 @docs main
 -}
@@ -338,11 +338,11 @@ itsOpenStyles =
 
 
 fire =
-    img [ src "/assets/fire.svg", class "emoji fire" ] []
+    img [ src "/fire.svg", class "emoji fire" ] []
 
 
 pencil =
-    img [ src "/assets/pencil.svg", class "emoji pencil" ] []
+    img [ src "/pencil.svg", class "emoji pencil" ] []
 
 
 view : Model -> Html Msg
